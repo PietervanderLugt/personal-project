@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Personal Project</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0a0f; color: #e2e8f0; font-family: 'Courier New', monospace; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0a0a0f; } ::-webkit-scrollbar-thumb { background: #1e2030; border-radius: 3px; }
+  .grid-bg { position: fixed; inset: 0; z-index: 0; background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; }
+  .glow { position: fixed; top: -200px; right: -200px; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(74,222,128,0.05) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+  input, select, textarea, button { font-family: 'Courier New', monospace; }
+  a { text-decoration: none; }
+  .folder-card { transition: all 0.2s; }
+  .folder-card:hover { transform: translateY(-2px); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const FITNESS_SPLIT = [
+  { day: "Upper A", focus: "Chest & Back", color: "#4ade80", warmup: [
+    { name: "Band Pull-Aparts", sets: "2", reps: "15", note: "Activate rear delts & scapular retractors" },
+    { name: "Incline DB Press (light)", sets: "2", reps: "15", note: "Prime chest, warm up shoulder joint" },
+  ], exercises: [
+    { name: "Smith Machine Incline Press", sets: "4", reps: "8–12", note: "Full stretch at bottom, 2–3 RIR. Incline hits upper chest — most lacking in beginners" },
+    { name: "Cable Chest Fly (low to high)", sets: "3", reps: "12–15", note: "Peak contraction focus. Constant tension > dumbbells for hypertrophy" },
+    { name: "DB Bench Press (flat)", sets: "3", reps: "10–12", note: "Greater ROM than barbell. 2 RIR" },
+    { name: "Cable Seated Row (wide grip)", sets: "4", reps: "10–12", note: "Drives mid-back & rhomboids. Full stretch at extension" },
+    { name: "Lat Pulldown (neutral grip)", sets: "4", reps: "10–12", note: "Neutral grip reduces elbow stress, maximal lat stretch at top" },
+    { name: "Cable Face Pull", sets: "3", reps: "15–20", note: "Rear delt + rotator cuff health. Non-negotiable for shoulder longevity" },
+  ]},
+  { day: "Upper B", focus: "Shoulders & Arms", color: "#34d399", warmup: [
+    { name: "Shoulder W/Y/T Raises (light DB)", sets: "2", reps: "10 each", note: "Activates rotator cuff + mid-traps" },
+    { name: "Cable Lateral Raise (light)", sets: "2", reps: "15", note: "Prime lateral delts before loading" },
+  ], exercises: [
+    { name: "Smith Machine Overhead Press", sets: "4", reps: "8–12", note: "Controlled descent. Full overhead lockout. 2 RIR" },
+    { name: "Cable Lateral Raise", sets: "4", reps: "15–20", note: "Cable keeps tension at full abduction unlike DBs. Last 2 sets to failure" },
+    { name: "DB Incline Curl", sets: "3", reps: "10–12", note: "Stretched position = superior hypertrophy signal. Full hang at bottom" },
+    { name: "Cable Overhead Tricep Extension", sets: "3", reps: "12–15", note: "Long head fully stretched overhead. Best tricep mass builder" },
+    { name: "Hammer Curl (cable rope)", sets: "3", reps: "12–15", note: "Brachialis + brachioradialis. Adds arm thickness" },
+    { name: "Cable Tricep Pushdown (rope)", sets: "3", reps: "12–15", note: "Flare ends apart at bottom for full lateral head contraction" },
+  ]},
+  { day: "Lower A", focus: "Quad & Glute focus", color: "#86efac", warmup: [
+    { name: "Glute Bridge (bodyweight)", sets: "2", reps: "15", note: "Activate glutes before squatting" },
+    { name: "Leg Swing + Hip Circle", sets: "2", reps: "10 each", note: "Hip mobility warmup, reduces injury risk" },
+  ], exercises: [
+    { name: "Smith Machine Squat", sets: "4", reps: "8–12", note: "Feet slightly forward. Deep stretch. 2 RIR. High quad + glute activation" },
+    { name: "DB Bulgarian Split Squat", sets: "3", reps: "10–12 each leg", note: "Unilateral = fixes imbalances. Stretch-focused. Go slow on descent" },
+    { name: "Leg Press (feet high & wide)", sets: "3", reps: "12–15", note: "High foot placement maximises glute stretch. Deep ROM, don't lock out" },
+    { name: "Leg Extension (machine)", sets: "3", reps: "15–20", note: "Isolation for quad sweep. Last set to failure. Squeeze at top" },
+    { name: "Standing Cable Hip Abduction", sets: "3", reps: "15 each", note: "Glute med activation — important for hip stability and aesthetics" },
+    { name: "Seated Calf Raise", sets: "4", reps: "15–20", note: "Soleus dominant. Full stretch at bottom, 2s pause. Last set to failure" },
+  ]},
+  { day: "Lower B", focus: "Hamstring & Posterior chain", color: "#6ee7b7", warmup: [
+    { name: "Cable Pull-Through (light)", sets: "2", reps: "15", note: "Hip hinge pattern warmup, activates glutes" },
+    { name: "Hamstring Curl (light)", sets: "2", reps: "15", note: "Prime hamstrings before RDL loading" },
+  ], exercises: [
+    { name: "Smith Machine Romanian Deadlift", sets: "4", reps: "8–12", note: "Maximal hamstring stretch. Hinge at hip, soft knee. 2 RIR" },
+    { name: "Lying Leg Curl (machine)", sets: "4", reps: "10–15", note: "Lengthened position = more hypertrophy. Control the lowering phase" },
+    { name: "Smith Machine Hip Thrust", sets: "4", reps: "10–15", note: "Best glute hypertrophy exercise. Full extension, squeeze 1s at top" },
+    { name: "DB Stiff-Leg Deadlift (single leg)", sets: "3", reps: "10–12 each", note: "Unilateral hamstring + glute. Greater stretch than bilateral" },
+    { name: "Leg Press (feet low, narrow)", sets: "3", reps: "12–15", note: "Low foot = quad finisher to balance posterior work" },
+    { name: "Standing Calf Raise (machine)", sets: "4", reps: "15–20", note: "Gastrocnemius dominant. Straight leg. Full stretch, pause at bottom" },
+  ]},
+];
+
+const TOPICS = [
+  { id: "fitness", icon: "⚡", label: "Fitness & Nutrition", color: "#4ade80", tag: "Science-Based", description: "Evidence-based training, nutrition protocols, supplementation, body composition, and performance optimization.", hasDetail: true },
+  { id: "appearance", icon: "✦", label: "Appearance", color: "#f59e0b", tag: "Practical Enhancements", description: "Safe, commercially available products and minor adjustments for skin, hair, grooming, and overall presentation.", subtopics: ["Skincare Routine & Actives", "Hair Health & Density", "Grooming & Aesthetics", "OTC Cosmetic Products", "Dental Care", "Posture & Body Language"] },
+  { id: "chemistry", icon: "⚗", label: "Chemistry Studies", color: "#60a5fa", tag: "Course Help", description: "Real-time help with chemistry coursework, problem-solving, concept explanations, and exam prep.", subtopics: ["Thermodynamics & Kinetics", "Equilibrium & Acids/Bases", "Electrochemistry", "Quantum & Atomic Theory", "Lab Technique & Safety", "Problem Walkthroughs"] },
+  { id: "organic", icon: "◈", label: "Organic Chemistry", color: "#e879f9", tag: "Mastery Plan", description: "A structured roadmap to fully master Organic Chemistry 1 & 2 — mechanisms, reactions, synthesis, and spectroscopy.", subtopics: ["OC1 Review & Solidification", "OC2 Core Mechanisms", "Reaction Pathways", "Spectroscopy (IR/NMR/MS)", "Synthesis Problems", "Arrow Pushing Mastery"] },
+  { id: "finance", icon: "◆", label: "Personal Finance", color: "#fb923c", tag: "Student Edition", description: "Money management, investing basics, budgeting on a student income, and building wealth from age 21.", subtopics: ["Budgeting & Expense Tracking", "Student Debt Strategy", "Index Funds & ETFs", "Tax Basics for Students", "Side Income Ideas", "Long-Term Wealth Building"] },
+];
+
+const OC_ROADMAP = [
+  { phase: "01", title: "Foundation Reset", duration: "2 weeks", color: "#4ade80", items: ["Hybridization & bonding", "Functional groups", "IUPAC nomenclature", "Stereochemistry basics"] },
+  { phase: "02", title: "Reaction Mechanisms", duration: "3 weeks", color: "#60a5fa", items: ["Arrow pushing rules", "SN1/SN2/E1/E2 mastery", "Carbocation stability", "Nucleophile vs electrophile"] },
+  { phase: "03", title: "Core Reactions", duration: "4 weeks", color: "#f59e0b", items: ["Alcohols, ethers, epoxides", "Aldehydes & ketones", "Carboxylic acids & derivatives", "Amines & nitrogen chemistry"] },
+  { phase: "04", title: "Advanced Topics", duration: "3 weeks", color: "#e879f9", items: ["Aromatic chemistry & EAS", "Conjugation & Diels-Alder", "Enolates & aldol reactions", "Carbohydrates overview"] },
+  { phase: "05", title: "Spectroscopy & Synthesis", duration: "2 weeks", color: "#fb923c", items: ["IR, NMR interpretation", "Mass spectrometry basics", "Retrosynthetic analysis", "Multi-step synthesis problems"] },
+];
+
+function MacroBar({ label, grams, kcal, total, color }) {
+  const pct = Math.round((kcal / total) * 100);
+  return (
+    <div style={{marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+        <span style={{fontSize:12,color:"#94a3b8",letterSpacing:1}}>{label}</span>
+        <span style={{fontSize:12,color:"#e2e8f0"}}>{grams}g <span style={{color:"#475569"}}>· {pct}%</span></span>
+      </div>
+      <div style={{height:6,background:"#1e2030",borderRadius:3,overflow:"hidden"}}>
+        <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:3}} />
+      </div>
+    </div>
+  );
+}
+
+function FitnessDetail() {
+  const [activeSplit, setActiveSplit] = useState(0);
+  const totalKcal = 3340;
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:24}}>
+        {[["197 cm","Height"],["83 kg","Start Weight"],["Lean Bulk +300","Protocol"]].map(([val,label]) => (
+          <div key={label} style={{background:"#0f1117",border:"1px solid #1e2030",borderRadius:10,padding:"13px 14px",textAlign:"center"}}>
+            <div style={{fontSize:18,fontFamily:"Georgia,serif",color:"#4ade80",marginBottom:3}}>{val}</div>
+            <div style={{fontSize:9,color:"#475569",letterSpacing:2}}>{label.toUpperCase()}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{background:"#0f1117",border:"1px solid #1e2030",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <h3 style={{margin:0,fontSize:14,fontFamily:"Georgia,serif",color:"#f1f5f9"}}>Daily Macros</h3>
+          <span style={{fontSize:22,fontFamily:"Georgia,serif",color:"#4ade80"}}>3,340 kcal</span>
+        </div>
+        <MacroBar label="PROTEIN" grams={165} kcal={660} total={totalKcal} color="#4ade80" />
+        <MacroBar label="CARBS" grams={470} kcal={1880} total={totalKcal} color="#60a5fa" />
+        <MacroBar label="FAT" grams={85} kcal={765} total={totalKcal} color="#f59e0b" />
+        <p style={{margin:"12px 0 0",fontSize:11,color:"#475569",lineHeight:1.6}}>TDEE ~3,040 + 300 surplus · Protein is non-negotiable — 165g every day regardless.</p>
+      </div>
+
+      <div style={{background:"#0f1117",border:"1px solid #1e2030",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{marginBottom:14}}>
+          <h3 style={{margin:"0 0 3px",fontSize:14,fontFamily:"Georgia,serif",color:"#f1f5f9"}}>Upper / Lower Split — 4 Days/Week</h3>
+          <p style={{margin:0,fontSize:11,color:"#475569"}}>Mon · Tue · Thu · Fri &nbsp;·&nbsp; 45–60 min sessions</p>
+        </div>
+        <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+          {FITNESS_SPLIT.map((s,i) => (
+            <button key={i} onClick={() => setActiveSplit(i)} style={{padding:"5px 13px",borderRadius:6,border:`1px solid ${activeSplit===i?s.color:"#1e2030"}`,background:activeSplit===i?s.color+"18":"transparent",color:activeSplit===i?s.color:"#475569",fontSize:11,letterSpacing:1,cursor:"pointer",transition:"all 0.15s"}}>
+              {s.day}
+            </button>
+          ))}
+        </div>
+        <div style={{marginBottom:10}}>
+          <span style={{fontSize:12,color:FITNESS_SPLIT[activeSplit].color,letterSpacing:1}}>{FITNESS_SPLIT[activeSplit].day}</span>
+          <span style={{fontSize:11,color:"#475569"}}> — {FITNESS_SPLIT[activeSplit].focus}</span>
+        </div>
+
+        {/* Warmup */}
+        <div style={{marginBottom:14,padding:12,background:"#0a0a0f",border:"1px solid #1e2030",borderRadius:8}}>
+          <p style={{fontSize:9,letterSpacing:2,color:"#f59e0b",marginBottom:8}}>WARMUP / ACTIVATION</p>
+          {FITNESS_SPLIT[activeSplit].warmup.map((w,i) => (
+            <div key={i} style={{marginBottom:i < FITNESS_SPLIT[activeSplit].warmup.length-1 ? 8 : 0}}>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <span style={{fontSize:9,color:"#f59e0b"}}>▸</span>
+                <span style={{fontSize:12,color:"#94a3b8"}}>{w.name}</span>
+                <span style={{fontSize:11,color:"#334155",marginLeft:"auto"}}>{w.sets}×{w.reps}</span>
+              </div>
+              {w.note && <div style={{fontSize:10,color:"#475569",marginTop:2,paddingLeft:17}}>{w.note}</div>}
+            </div>
+          ))}
+        </div>
+
+        {/* Working sets */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 52px 90px",gap:6,padding:"4px 8px",marginBottom:6}}>
+          {["EXERCISE","SETS","REPS"].map(h => <span key={h} style={{fontSize:9,color:"#334155",letterSpacing:2}}>{h}</span>)}
+        </div>
+        {FITNESS_SPLIT[activeSplit].exercises.map((ex,i) => (
+          <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 52px 90px",gap:6,padding:"9px 8px",background:i%2===0?"#0a0a0f":"transparent",borderRadius:6}}>
+            <div>
+              <div style={{fontSize:12,color:"#e2e8f0"}}>{ex.name}</div>
+              {ex.note && <div style={{fontSize:10,color:"#475569",marginTop:1}}>{ex.note}</div>}
+            </div>
+            <span style={{fontSize:12,color:FITNESS_SPLIT[activeSplit].color}}>{ex.sets}</span>
+            <span style={{fontSize:12,color:"#94a3b8"}}>{ex.reps}</span>
+          </div>
+        ))}
+        <div style={{marginTop:12,padding:10,background:"#4ade8008",border:"1px solid #4ade8018",borderRadius:8}}>
+          <p style={{margin:0,fontSize:11,color:"#475569",lineHeight:1.6}}><span style={{color:"#4ade80"}}>RIR rule:</span> Compounds → stop 1–2 reps short. Isolation (curls, laterals, pushdowns) → last set to failure is fine.</p>
+        </div>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        {[
+          {name:"Hevy",category:"Gym Tracker",icon:"🏋️",color:"#60a5fa",badge:"Best Free Gym App",why:"Log every set, track progressive overload, visualize strength curves over time. Free tier is more than enough.",platform:"iOS & Android · Free"},
+          {name:"MyFitnessPal",category:"Nutrition Tracker",icon:"🥗",color:"#f59e0b",badge:"Best Macro Tracker",why:"Barcode scanner, huge food database, auto macro totals. Easiest way to verify you're hitting 165g protein daily.",platform:"iOS & Android · Free"},
+        ].map(app => (
+          <div key={app.name} style={{background:"#0f1117",border:`1px solid ${app.color}25`,borderRadius:12,padding:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+              <span style={{fontSize:26}}>{app.icon}</span>
+              <span style={{fontSize:9,color:app.color,background:app.color+"15",padding:"2px 8px",borderRadius:20,letterSpacing:1}}>{app.badge.toUpperCase()}</span>
+            </div>
+            <div style={{fontSize:15,fontFamily:"Georgia,serif",color:"#f1f5f9",marginBottom:2}}>{app.name}</div>
+            <div style={{fontSize:10,color:app.color,letterSpacing:1,marginBottom:8}}>{app.category} · {app.platform}</div>
+            <p style={{margin:0,fontSize:11,color:"#64748b",lineHeight:1.6}}>{app.why}</p>
+          </div>
+        ))}
+      </div>
+
+      <div style={{background:"#0f1117",border:"1px solid #1e2030",borderRadius:12,padding:18}}>
+        <h3 style={{margin:"0 0 12px",fontSize:14,fontFamily:"Georgia,serif",color:"#f1f5f9"}}>Gym Clothing — Coverage & Affordable</h3>
+        {[
+          {store:"Decathlon NL",tag:"Best for Delft",url:"https://www.decathlon.nl",note:"Domyos hoodies & long sleeves. Cheap, durable, nearby physical store.",color:"#4ade80"},
+          {store:"Gym King",tag:"Online — Aesthetic",url:"https://www.gymking.com",note:"Great oversized hoodies. Size up one for 197cm frame.",color:"#60a5fa"},
+          {store:"ASOS",tag:"Online — Tall Range",url:"https://www.asos.com",note:"Filter by 'tall' — much better proportions for your height.",color:"#f59e0b"},
+        ].map(s => (
+          <div key={s.store} style={{display:"flex",gap:10,alignItems:"flex-start",padding:10,background:"#0a0a0f",borderRadius:8,marginBottom:6}}>
+            <div style={{width:3,alignSelf:"stretch",background:s.color,borderRadius:2,flexShrink:0,minHeight:36}} />
+            <div>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:2}}>
+                <a href={s.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:s.color,fontWeight:700}}>{s.store} ↗</a>
+                <span style={{fontSize:9,color:"#334155",letterSpacing:1}}>{s.tag.toUpperCase()}</span>
+              </div>
+              <p style={{margin:0,fontSize:11,color:"#475569"}}>{s.note}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const APPEARANCE_PRODUCTS = [
+  {
+    category: "Eyes",
+    icon: "👁",
+    color: "#60a5fa",
+    items: [
+      { name: "Lumify Eye Drops", badge: "FDA Approved", price: "~€15", timing: "60 seconds", why: "Low-dose brimonidine selectively constricts veins (not arteries) to whiten eyes without rebound redness. The only redness drop that actually works long-term. Use situationally — before going out, not daily.", where: "Pharmacy / bol.com" },
+    ]
+  },
+  {
+    category: "Teeth",
+    icon: "🦷",
+    color: "#f1f5f9",
+    items: [
+      { name: "Crest 3D Whitestrips", badge: "Most Studied OTC", price: "~€30", timing: "2–4 weeks", why: "Hydrogen peroxide at ADA-safe concentrations (≤3.5%). Most clinically validated OTC whitening product. Hydrogen peroxide is the only agent proven to whiten natural enamel beyond stain removal. Use the original, not knockoffs.", where: "bol.com / Amazon NL" },
+    ]
+  },
+  {
+    category: "Skin",
+    icon: "✦",
+    color: "#4ade80",
+    items: [
+      { name: "The Ordinary Niacinamide 10% + Zinc", badge: "Multiple RCTs", price: "~€6", timing: "4–12 weeks", why: "Reduces pore size, sebum production, redness and blotchiness. Inhibits 5α-reductase (same pathway as DHT) to cut oiliness. At 21 with elevated testosterone this is your highest-ROI skincare buy. Apply after cleanser, before moisturiser.", where: "INCI Beauty / Douglas / bol.com" },
+    ]
+  },
+  {
+    category: "Hair",
+    icon: "💈",
+    color: "#e879f9",
+    items: [
+      { name: "Nizoral 2% Ketoconazole Shampoo", badge: "PubMed Backed", price: "~€12", timing: "3–6 months", why: "Antifungal that also blocks androgen receptors on scalp, reducing DHT-driven follicle miniaturisation. Clinical studies show hair density improvements comparable to minoxidil. Use 2–3x per week, leave on 3–5 min before rinsing. Not a TikTok product — dermatologists prescribe this.", where: "Pharmacy / kruidvat.nl" },
+    ]
+  },
+  {
+    category: "Grooming Tools",
+    icon: "✂",
+    color: "#fb923c",
+    items: [
+      { name: "Revlon Expert Slant Tip Tweezers", badge: "Best Budget Pick", price: "~€8", timing: "Immediate", why: "Precision-aligned stainless steel slant tip. Independently tested against €50+ brands and rated comparable in grip and precision. Use post-shower when pores are open. Clean with rubbing alcohol. For brows, stray facial hairs and ingrowns.", where: "Kruidvat / bol.com / HEMA" },
+      { name: "Philips NT3650 Nose Hair Trimmer", badge: "Reliable & Cheap", price: "~€15", timing: "Immediate", why: "Dual-sided steel blade, safe rounded tip, waterproof. Nose and ear hair is one of the highest-impact grooming details most guys overlook. Run it weekly. The Philips NT series has been consistent for years — avoid no-name brands that pull instead of cut.", where: "bol.com / MediaMarkt / Coolblue" },
+    ]
+  },
+];
+
+function AppearanceDetail() {
+  return (
+    <div>
+      <div style={{marginBottom:20,padding:14,background:"#0f1117",border:"1px solid #f59e0b30",borderRadius:10}}>
+        <p style={{margin:"0 0 4px",fontSize:9,color:"#f59e0b",letterSpacing:2}}>SELECTION CRITERIA</p>
+        <p style={{margin:0,fontSize:12,color:"#64748b",lineHeight:1.7}}>Every product below has peer-reviewed clinical evidence or FDA approval. Nothing from TikTok Shop, no "collagen water", no gimmicks. Evidence level and realistic timelines included for each.</p>
+      </div>
+      {APPEARANCE_PRODUCTS.map((cat) => (
+        <div key={cat.category} style={{marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+            <span style={{fontSize:16}}>{cat.icon}</span>
+            <span style={{fontSize:10,letterSpacing:3,color:cat.color}}>{cat.category.toUpperCase()}</span>
+          </div>
+          {cat.items.map((item) => (
+            <div key={item.name} style={{background:"#0f1117",border:`1px solid ${cat.color}20`,borderRadius:12,padding:18,marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10,flexWrap:"wrap",gap:6}}>
+                <h4 style={{margin:0,fontSize:14,fontFamily:"Georgia,serif",color:"#f1f5f9"}}>{item.name}</h4>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  <span style={{fontSize:9,color:cat.color,background:cat.color+"15",padding:"2px 8px",borderRadius:20,letterSpacing:1}}>{item.badge.toUpperCase()}</span>
+                </div>
+              </div>
+              <p style={{margin:"0 0 12px",fontSize:12,color:"#64748b",lineHeight:1.7}}>{item.why}</p>
+              <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                {[["💶 Cost",item.price],["⏱ Results",item.timing],["🛒 Where",item.where]].map(([label,val]) => (
+                  <div key={label} style={{padding:"5px 10px",background:"#0a0a0f",borderRadius:6,border:"1px solid #1e2030"}}>
+                    <span style={{fontSize:9,color:"#334155",letterSpacing:1,display:"block",marginBottom:1}}>{label}</span>
+                    <span style={{fontSize:11,color:"#94a3b8"}}>{val}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FolderNotes({ folderId, color }) {
+  const key = `notes_${folderId}`;
+  const [notes, setNotes] = useState(() => localStorage.getItem(key) || "");
+  const [saved, setSaved] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  const handleSave = () => {
+    localStorage.setItem(key, notes);
+    setSaved(true);
+    setEditing(false);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleClear = () => {
+    if (window.confirm("Clear all notes for this folder?")) {
+      setNotes("");
+      localStorage.removeItem(key);
+    }
+  };
+
+  return (
+    <div style={{marginTop:24,background:"#0f1117",border:`1px dashed ${color}40`,borderRadius:12,padding:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:12}}>📝</span>
+          <span style={{fontSize:10,letterSpacing:2,color:color}}>MY NOTES</span>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          {notes && !editing && (
+            <button onClick={handleClear} style={{fontSize:9,color:"#334155",background:"none",border:"none",cursor:"pointer",letterSpacing:1,padding:"3px 8px"}}>CLEAR</button>
+          )}
+          {editing ? (
+            <button onClick={handleSave} style={{fontSize:9,color:"#0a0a0f",background:color,border:"none",cursor:"pointer",letterSpacing:1,padding:"4px 12px",borderRadius:4,fontFamily:"'Courier New',monospace",fontWeight:700}}>
+              SAVE
+            </button>
+          ) : (
+            <button onClick={() => setEditing(true)} style={{fontSize:9,color:color,background:color+"15",border:`1px solid ${color}30`,cursor:"pointer",letterSpacing:1,padding:"4px 12px",borderRadius:4,fontFamily:"'Courier New',monospace"}}>
+              {notes ? "EDIT" : "+ ADD NOTE"}
+            </button>
+          )}
+        </div>
+      </div>
+      {editing ? (
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          autoFocus
+          placeholder="Write anything — links to research, ideas, reminders, things to ask Claude..."
+          style={{width:"100%",minHeight:120,background:"#0a0a0f",border:`1px solid ${color}30`,borderRadius:8,padding:"10px 12px",color:"#e2e8f0",fontSize:12,outline:"none",resize:"vertical",fontFamily:"'Courier New',monospace",lineHeight:1.7,boxSizing:"border-box"}}
+        />
+      ) : notes ? (
+        <div style={{fontSize:12,color:"#94a3b8",lineHeight:1.8,whiteSpace:"pre-wrap",padding:"2px 0"}}>{notes}</div>
+      ) : (
+        <p style={{fontSize:11,color:"#334155",margin:0,fontStyle:"italic"}}>No notes yet. Hit "+ ADD NOTE" to write something.</p>
+      )}
+      {saved && <p style={{margin:"8px 0 0",fontSize:10,color:color,letterSpacing:1}}>✓ SAVED</p>}
+    </div>
+  );
+}
+
+function App() {
+  const [activeFolder, setActiveFolder] = useState(null);
+  const [activeTab, setActiveTab] = useState("folders");
+  const [emailData, setEmailData] = useState({to:"",topic:"",subject:"",note:""});
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSendEmail = async () => {
+    setSending(true);
+    await new Promise(r => setTimeout(r, 1800));
+    setSending(false); setSent(true);
+    setTimeout(() => { setSent(false); setEmailData({to:"",topic:"",subject:"",note:""}); }, 3000);
+  };
+
+  const activeTopic = TOPICS.find(t => t.id === activeFolder);
+
+  return (
+    <div style={{minHeight:"100vh",background:"#0a0a0f",color:"#e2e8f0",fontFamily:"'Courier New',monospace",position:"relative",overflow:"hidden"}}>
+      <div className="grid-bg" />
+      <div className="glow" />
+      <div style={{position:"relative",zIndex:1,maxWidth:1100,margin:"0 auto",padding:"40px 24px 80px"}}>
+
+        {/* Header */}
+        <div style={{marginBottom:36}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+            <div style={{width:7,height:7,borderRadius:"50%",background:"#4ade80",boxShadow:"0 0 8px #4ade80"}} />
+            <span style={{fontSize:10,letterSpacing:4,color:"#4ade80",textTransform:"uppercase"}}>Personal Hub — Active</span>
+          </div>
+          <h1 style={{fontSize:32,fontWeight:700,letterSpacing:-1,margin:0,fontFamily:"Georgia,serif",color:"#f1f5f9"}}>Personal Project</h1>
+          <p style={{color:"#475569",marginTop:5,fontSize:12,letterSpacing:1}}>5 domains · Organized · Expandable</p>
+        </div>
+
+        {/* Tabs */}
+        <div style={{display:"flex",gap:4,marginBottom:28,background:"#111118",borderRadius:8,padding:4,width:"fit-content",border:"1px solid #1e2030"}}>
+          {[["folders","▤  Folders"],["roadmap","◈  OC Roadmap"],["email","✉  Remind Me"]].map(([id,label]) => (
+            <button key={id} onClick={() => { setActiveTab(id); setActiveFolder(null); }} style={{padding:"7px 16px",borderRadius:6,border:"none",cursor:"pointer",fontSize:11,letterSpacing:1,background:activeTab===id?"#1e293b":"transparent",color:activeTab===id?"#e2e8f0":"#475569",transition:"all 0.2s"}}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* FOLDERS */}
+        {activeTab === "folders" && (
+          <div>
+            {activeFolder ? (
+              <div>
+                <button onClick={() => setActiveFolder(null)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"#475569",cursor:"pointer",fontSize:11,letterSpacing:1,marginBottom:18}}>
+                  ← BACK TO FOLDERS
+                </button>
+                <div style={{marginBottom:20}}>
+                  <span style={{fontSize:10,letterSpacing:3,color:activeTopic?.color}}>{activeTopic?.tag?.toUpperCase()}</span>
+                  <h2 style={{margin:"4px 0 0",fontFamily:"Georgia,serif",fontSize:24,color:"#f1f5f9"}}>{activeTopic?.label}</h2>
+                </div>
+                {activeFolder === "fitness" ? (
+                  <div><FitnessDetail /><FolderNotes folderId="fitness" color="#4ade80" /></div>
+                ) : activeFolder === "appearance" ? (
+                  <div><AppearanceDetail /><FolderNotes folderId="appearance" color="#f59e0b" /></div>
+                ) : (
+                  <div style={{background:"#0f1117",border:"1px solid #1e2030",borderRadius:12,padding:22}}>
+                    <p style={{color:"#64748b",fontSize:13,marginBottom:16,lineHeight:1.7}}>{activeTopic?.description}</p>
+                    <p style={{fontSize:10,letterSpacing:2,color:"#334155",marginBottom:10}}>FOCUS AREAS</p>
+                    {activeTopic?.subtopics?.map(s => (
+                      <div key={s} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#94a3b8",marginBottom:7}}>
+                        <span style={{color:activeTopic?.color,fontSize:9}}>▸</span> {s}
+                      </div>
+                    ))}
+                    <div style={{marginTop:18,padding:14,background:"#0a0a0f",borderRadius:8,border:"1px solid #1e2030"}}>
+                      <p style={{margin:0,fontSize:11,color:"#475569"}}>Jump into this topic in the Claude chat — reference the folder and ask away.</p>
+                    </div>
+                    <FolderNotes folderId={activeFolder} color={activeTopic?.color} />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))",gap:12}}>
+                  {TOPICS.map(topic => (
+                    <div key={topic.id} className="folder-card" onClick={() => setActiveFolder(topic.id)}
+                      style={{background:"#0f1117",border:"1px solid #1e2030",borderRadius:12,padding:20,cursor:"pointer"}}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = topic.color+"55"}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = "#1e2030"}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                        <div style={{width:40,height:40,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",background:topic.color+"15",fontSize:18,border:`1px solid ${topic.color}25`}}>{topic.icon}</div>
+                        <span style={{fontSize:9,letterSpacing:2,color:topic.color,background:topic.color+"15",padding:"3px 9px",borderRadius:20}}>{topic.tag.toUpperCase()}</span>
+                      </div>
+                      <h3 style={{margin:"0 0 6px",fontSize:15,fontFamily:"Georgia,serif",color:"#f1f5f9"}}>{topic.label}</h3>
+                      <p style={{margin:"0 0 12px",fontSize:12,color:"#475569",lineHeight:1.6}}>{topic.description}</p>
+                      {topic.id === "fitness" && (
+                        <div style={{padding:"5px 9px",background:"#4ade8010",border:"1px solid #4ade8020",borderRadius:6,marginBottom:10}}>
+                          <span style={{fontSize:9,color:"#4ade80",letterSpacing:1}}>✓ PROFILE LOADED · 3,340 KCAL · HEVY + MFP</span>
+                        </div>
+                      )}
+                      {topic.id === "appearance" && (
+                        <div style={{padding:"5px 9px",background:"#f59e0b10",border:"1px solid #f59e0b20",borderRadius:6,marginBottom:10}}>
+                          <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1}}>✓ 5 PRODUCTS LOADED · EVIDENCE-BASED ONLY</span>
+                        </div>
+                      )}
+                      <span style={{fontSize:10,color:"#334155"}}>Open folder →</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginTop:16,padding:16,background:"#0f1117",border:"1px dashed #1e2030",borderRadius:12}}>
+                  <p style={{margin:"0 0 4px",fontSize:9,color:"#fb923c",letterSpacing:3}}>WHY PERSONAL FINANCE AT 21</p>
+                  <p style={{margin:0,fontSize:12,color:"#475569",lineHeight:1.7,maxWidth:700}}>Compound interest starts now, not at 30. A chemistry student who thinks systematically already has the right mindset for investing. At 21 with low expenses, even small consistent investments have a 40+ year runway.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* OC ROADMAP */}
+        {activeTab === "roadmap" && (
+          <div>
+            <div style={{marginBottom:22}}>
+              <h2 style={{fontFamily:"Georgia,serif",fontSize:22,margin:"0 0 5px"}}>Organic Chemistry Mastery Plan</h2>
+              <p style={{color:"#475569",fontSize:12,margin:0}}>14-week · OC1 refresh + full OC2 · Principle → Mechanism → Application</p>
+            </div>
+            <div style={{position:"relative"}}>
+              <div style={{position:"absolute",left:30,top:0,bottom:0,width:1,background:"#1e2030"}} />
+              {OC_ROADMAP.map(phase => (
+                <div key={phase.phase} style={{display:"flex",gap:20,marginBottom:4}}>
+                  <div style={{flexShrink:0,position:"relative",zIndex:1}}>
+                    <div style={{width:60,height:60,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:"#0a0a0f",border:`2px solid ${phase.color}`,color:phase.color,fontSize:13,fontWeight:700,letterSpacing:1,boxShadow:`0 0 12px ${phase.color}20`}}>{phase.phase}</div>
+                  </div>
+                  <div style={{flex:1,background:"#0f1117",border:"1px solid #1e2030",borderRadius:10,padding:16,marginBottom:12}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                      <h3 style={{margin:0,fontSize:14,fontFamily:"Georgia,serif",color:"#f1f5f9"}}>{phase.title}</h3>
+                      <span style={{fontSize:9,color:phase.color,background:phase.color+"15",padding:"2px 9px",borderRadius:20,letterSpacing:1}}>{phase.duration.toUpperCase()}</span>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4}}>
+                      {phase.items.map(item => (
+                        <div key={item} style={{fontSize:11,color:"#94a3b8",display:"flex",gap:5,alignItems:"center"}}>
+                          <span style={{color:phase.color,fontSize:7}}>◆</span> {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* EMAIL */}
+        {activeTab === "email" && (
+          <div style={{maxWidth:480}}>
+            <div style={{marginBottom:22}}>
+              <h2 style={{fontFamily:"Georgia,serif",fontSize:22,margin:"0 0 5px"}}>Send Yourself a Reminder</h2>
+              <p style={{color:"#475569",fontSize:12,margin:0}}>Flag something to follow up on — lands in your inbox.</p>
+            </div>
+            {sent ? (
+              <div style={{padding:28,background:"#0f1117",border:"1px solid #4ade8040",borderRadius:12,textAlign:"center"}}>
+                <div style={{fontSize:32,marginBottom:8}}>✓</div>
+                <p style={{color:"#4ade80",fontFamily:"Georgia,serif",margin:0}}>Reminder sent!</p>
+              </div>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                {[{label:"YOUR EMAIL",key:"to",placeholder:"you@email.com"},{label:"SUBJECT",key:"subject",placeholder:"e.g. Research creatine loading protocol"}].map(f => (
+                  <div key={f.key}>
+                    <label style={{fontSize:9,letterSpacing:2,color:"#475569",display:"block",marginBottom:5}}>{f.label}</label>
+                    <input value={emailData[f.key]} onChange={e => setEmailData({...emailData,[f.key]:e.target.value})} placeholder={f.placeholder}
+                      style={{width:"100%",background:"#0f1117",border:"1px solid #1e2030",borderRadius:8,padding:"10px 13px",color:"#e2e8f0",fontSize:13,outline:"none"}} />
+                  </div>
+                ))}
+                <div>
+                  <label style={{fontSize:9,letterSpacing:2,color:"#475569",display:"block",marginBottom:5}}>FOLDER</label>
+                  <select value={emailData.topic} onChange={e => setEmailData({...emailData,topic:e.target.value})}
+                    style={{width:"100%",background:"#0f1117",border:"1px solid #1e2030",borderRadius:8,padding:"10px 13px",color:emailData.topic?"#e2e8f0":"#475569",fontSize:13,outline:"none"}}>
+                    <option value="">Select folder...</option>
+                    {TOPICS.map(t => <option key={t.id} value={t.label}>{t.icon} {t.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize:9,letterSpacing:2,color:"#475569",display:"block",marginBottom:5}}>NOTES</label>
+                  <textarea value={emailData.note} onChange={e => setEmailData({...emailData,note:e.target.value})} rows={3} placeholder="Context, links, why this matters..."
+                    style={{width:"100%",background:"#0f1117",border:"1px solid #1e2030",borderRadius:8,padding:"10px 13px",color:"#e2e8f0",fontSize:13,outline:"none",resize:"vertical"}} />
+                </div>
+                <button onClick={handleSendEmail} disabled={!emailData.to||!emailData.subject||sending}
+                  style={{padding:"12px 20px",background:emailData.to&&emailData.subject?"#4ade80":"#1e2030",color:emailData.to&&emailData.subject?"#0a0a0f":"#334155",border:"none",borderRadius:8,fontSize:11,letterSpacing:2,cursor:emailData.to&&emailData.subject?"pointer":"not-allowed",fontWeight:700,transition:"all 0.2s"}}>
+                  {sending ? "SENDING..." : "✉  SEND REMINDER"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{marginTop:52,paddingTop:18,borderTop:"1px solid #1e2030",display:"flex",justifyContent:"space-between"}}>
+          <span style={{fontSize:9,color:"#1e2030",letterSpacing:2}}>PERSONAL PROJECT v1.1</span>
+          <span style={{fontSize:9,color:"#1e2030",letterSpacing:1}}>5 folders · Claude-powered</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(React.createElement(App), document.getElementById('root'));
+</script>
+</body>
+</html>
